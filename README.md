@@ -1,6 +1,12 @@
 Commandline Workflow
 ==============
 
+Software dependency
+--------------
+python
+bedtool
+rtool
+
 Reformat Peak file
 -----------------
 * center 100bp window for each peak
