@@ -11,20 +11,19 @@ PosRankEnrichmentFn=sys.argv[2]
 motifNames_clust=dict()
 TFNameSet=set()
 gene2Protein=dict()
-for line in open("gene2Protein.txt"):
+for line in open("data/gene2Protein.txt"):
         comps=line.strip().split()
         gene2Protein[comps[0].upper()]=comps[1].upper()
 
 		
 motifsWinstance=set()
-for line in open("uniqueMotif.txt"):
+for line in open("data/uniqueMotif.txt"):
         motifsWinstance.add(line.strip().upper())
 
-		
 cid=-1
 cid_name=dict()
 multigroup_TF=set()
-for line in open("motifs-clust-names.txt"):
+for line in open("data/motifs-clust-names.txt"):
         cid+=1
         comps=line.strip().replace(";","\t").split()
         motifset=set(comps)
@@ -41,7 +40,7 @@ for line in open("motifs-clust-names.txt"):
                         motifNames_clust[tfname]=set()
                 motifNames_clust[tfname].add(cid)
                 motifNames_clust[m]=cid
-                if tfname in TFNameSet or len(tfset)<3:
+                if tfname in TFNameSet or len(tfset)<30:
                         tfset.add(tfname)
         if len(tfset)==0:
                 continue
@@ -51,7 +50,7 @@ for line in open("motifs-clust-names.txt"):
 		
 TotalMotifCandidates=set()
 
-for line in open("uniqueMotif.txt"):
+for line in open("data/uniqueMotif.txt"):
         m=line.strip().upper()
         tfname=m.split("_")[0]
         if len(tfname)<2:
@@ -64,6 +63,7 @@ for line in open("uniqueMotif.txt"):
 
 		
 def getRankandLabel(fn):
+	mncid_bestmotif=dict()  ##record tf_motifcid to individual motif mapping
         lines=open(fn).readlines()
         #print fn
         numScoreTypes=len(lines[0].split())-1
@@ -79,14 +79,24 @@ def getRankandLabel(fn):
                 if motifname not in motifNames_clust:
                         continue
                 motifname_cid=motifNames_clust[motifname]
-                if len(cid_name[motifname_cid])<2:
+                if len(cid_name[motifname_cid])<2: ##filter motif with name only one character
                         continue
+		mncid=motifname.split("_")[0]+"_"+str(motifname_cid)
                 if motifname_cid  in visited:
                         ii=visited[motifname_cid]
+			oldscore=0
+			newscore=0
                         for j in range(0,numScoreTypes):
+				oldscore+=score_mat[ii,j]
+				newscore+=float(comps[j+1])
                                 score_mat[ii,j]=max(score_mat[ii,j] ,float(comps[j+1]))
+			if mncid not in mncid_bestmotif:
+				mncid_bestmotif[mncid]=motifname
+			elif oldscore<newscore:
+				mncid_bestmotif[mncid]=motifname
                         continue
                 else:
+			mncid_bestmotif[mncid]=motifname
                         motifNameList.append(motifname_cid)
                         visited[motifname_cid]=i
                         for j in range(0,numScoreTypes):
@@ -115,9 +125,9 @@ def getRankandLabel(fn):
         Y=list(Y)
 
         ##
-        return (rank_mat,Y[0:i],motifNameList,Zscore_mat[0:i,:])
+        return (rank_mat,Y[0:i],motifNameList,Zscore_mat[0:i,:],mncid_bestmotif)
 
-		####load globalenrichment score########
+####load globalenrichment score########
 dataset_motifscore=dict()
 for line in gzip.open(GlobalEnrichmentFn):
         comps=line.strip().split()
@@ -149,7 +159,7 @@ chipseq_tf=list()
 fl=PosRankEnrichmentFn
 bname=os.path.basename(fl).replace(".pickle","").replace(".score","").replace(".bed.ol","")
 TFname="."
-X,Y,motifnamelist,score_mat=getRankandLabel(fl)
+X,Y,motifnamelist,score_mat,mncid_bestmotif=getRankandLabel(fl)
 ##expand 2 columns
 X=np.column_stack((X,np.zeros((X.shape[0], 2)))) #ranking matrix
 score_mat=np.column_stack((score_mat,np.zeros((score_mat.shape[0], 2)))) #score matrix
@@ -183,4 +193,5 @@ else:
         combined_Y+=Y
 outf.close()
 
-pickle.dump( [combined_Y,combined_rank_mat,combined_chipseqmotif,combined_zscore_mat], open( PosRankEnrichmentFn+".summary.pickle", "wb" ) )	
+
+pickle.dump( [combined_Y,combined_rank_mat,combined_chipseqmotif,combined_zscore_mat,mncid_bestmotif], open( PosRankEnrichmentFn+".summary.pickle", "wb" ) )	

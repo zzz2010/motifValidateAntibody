@@ -74,9 +74,6 @@ def PositionalBiasScore_binom(PositionCount1,maxRange1):
 	return z #-scipy.stats.binom.logsf(inCount,inCount+outCount,float(winsize)/maxRange1)
 
 
-
-
-
 outf=open(fn+".score",'w')
 for motif in RankCount:
 	pScore=PositionalBiasScore_binom(PositionCount[motif],maxRange2)

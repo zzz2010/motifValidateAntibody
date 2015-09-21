@@ -8,7 +8,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-maxRank=282
+maxRank=283
 inputSummaryPickleFn=sys.argv[1]
 modelParamsTuple=pickle.load(open("cistrome_model.pickle",'rb'))
 modelparameter_z1=modelParamsTuple[0]
@@ -56,11 +56,18 @@ result=pickle.load(open( inputSummaryPickleFn, "rb" ) )
 
 def Arr2str(a):
 	return "\t".join(map(str,a))
+
+badMotifs=set()
+for line in open("data/badRankMotif.txt"):
+	badMotifs.add(line.strip())	
+
 i=0
 Y=result[0]
 ranks=result[1]
 chipseq_motif=result[2]
 zscores=result[3]
+mncid_bestmotif=result[4]
+
 dataset_logOdd=dict()
 cm_strs=chipseq_motif[0].split()
 chip=cm_strs[0].split("_")[0]
@@ -68,7 +75,7 @@ chipdataset=cm_strs[0]
 motifs=cm_strs[1].split("|")
 motif_cid=motifs[len(motifs)-1]
 outf=open(inputSummaryPickleFn+".motifresult",'w')
-header="MotifName\tAcceptLogOdds\tAcceptProb\tPositionBiasZscore\tPeakRankBiasZscore\tGlobalEnrichmentZscore\tCombineAvgScore"
+header="Motif_cid\tIsBadMotif\tPositionBiasZscore\tPeakRankBiasZscore\tGlobalEnrichmentZscore\tCombineAvgScore\tEnrichmentRank(total:"+str(maxRank)+")\tbestMotif"
 outf.write(header+"\n")
 tfLogOdd=dict()
 tfBestScore=dict()
@@ -82,6 +89,11 @@ for j in range(len(chipseq_motif)-1):
 	cid=toks[len(toks)-1]
 	for motif in toks[0:(len(toks)-1)]:
 		m=motif+"_"+cid
+		isbad="Y" if m in badMotifs else "N"
+		tf=motif
+		bestmotif=mncid_bestmotif[m]
+	        r=maxRank-rank_vec[scoreCol]
+		outf.write(m+"\t"+isbad+"\t"+Arr2str(score_vec)+"\t"+str(r+1)+"\t"+bestmotif+"\n")
 	        if m not in modelparameter_z0:
 	                continue
 	        if m in modelparameter_z1:
@@ -89,9 +101,9 @@ for j in range(len(chipseq_motif)-1):
 	                support=motif_support[m]
 	        else:
 	                z1Param=modelparameter_z1["other"]
-	        r=maxRank-rank_vec[scoreCol]
+		if motif=="CTCF":
+			print r, z1Param,modelparameter_z0[m]
 	        logOdds=getMotifLogOdd(z1Param,modelparameter_z0[m],maxRank)[r]
-		tf=motif
 		if tf not in tfLogOdd:
 			tfLogOdd[tf]=float(logOdds)
 			tfBestScore[tf]=float(logOdds)
@@ -103,14 +115,24 @@ for j in range(len(chipseq_motif)-1):
 				tfBestScore[tf]=float(logOdds)
 				tfBestMotif[tf]=m
 				tfBestMotifScore[tf]=Arr2str(score_vec)
-		outf.write(Arr2str([m,float(logOdds),odd2prob(logOdds)])+"\t"+Arr2str(score_vec)+"\n")
 outf.close()
 
+tf_validatability=dict()
+i=-1
+for line in open("data/TF_validatability.txt"):
+	i+=1
+	if i==0:
+		continue
+	comps=line.strip().split()
+	tf_validatability[comps[0]]=comps[1]+"\t"+comps[2]
+
 outf=open(inputSummaryPickleFn+".tfresult",'w')
-header="TFName\tAcceptLogOdds\tAcceptProb\tBestMotif\tPositionBiasZscore\tPeakRankBiasZscore\tGlobalEnrichmentZscore\tCombineAvgScore"
+header="TFName\tAcceptLogOdds\tAcceptProb\tBestMotif\tPositionBiasZscore\tPeakRankBiasZscore\tGlobalEnrichmentZscore\tCombineAvgScore\tRejectCapability\tAcceptCapability"
 outf.write(header+"\n")
 for tf in tfBestScore:
 	logOdds=tfLogOdd[tf]
-	outf.write(Arr2str([tf,float(logOdds),odd2prob(logOdds)])+"\t"+tfBestMotif[tf]+"\t"+(tfBestMotifScore[tf])+"\n")
+	if tf not in tf_validatability: #that mean not in training data
+		continue
+	outf.write(Arr2str([tf,float(logOdds),odd2prob(logOdds)])+"\t"+tfBestMotif[tf]+"\t"+(tfBestMotifScore[tf])+"\t"+tf_validatability[tf]+"\n")
 outf.close()
 
