@@ -7,10 +7,10 @@ from scipy.stats import nbinom
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+root=sys.path[0]
 maxRank=283
 inputSummaryPickleFn=sys.argv[1]
-modelParamsTuple=pickle.load(open("cistrome_model.pickle",'rb'))
+modelParamsTuple=pickle.load(open(root+"/cistrome_model.pickle",'rb'))
 modelparameter_z1=modelParamsTuple[0]
 modelparameter_z0=modelParamsTuple[1]
 motif_support=modelParamsTuple[2]
@@ -58,7 +58,7 @@ def Arr2str(a):
 	return "\t".join(map(str,a))
 
 badMotifs=set()
-for line in open("data/badRankMotif.txt"):
+for line in open(root+"/data/badRankMotif.txt"):
 	badMotifs.add(line.strip())	
 
 i=0
@@ -91,6 +91,8 @@ for j in range(len(chipseq_motif)-1):
 		m=motif+"_"+cid
 		isbad="Y" if m in badMotifs else "N"
 		tf=motif
+		if m not in mncid_bestmotif:
+			continue
 		bestmotif=mncid_bestmotif[m]
 	        r=maxRank-rank_vec[scoreCol]
 		outf.write(m+"\t"+isbad+"\t"+Arr2str(score_vec)+"\t"+str(r+1)+"\t"+bestmotif+"\n")
@@ -119,7 +121,7 @@ outf.close()
 
 tf_validatability=dict()
 i=-1
-for line in open("data/TF_validatability.txt"):
+for line in open(root+"/data/TF_validatability.txt"):
 	i+=1
 	if i==0:
 		continue

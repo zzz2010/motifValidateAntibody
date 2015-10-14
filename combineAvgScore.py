@@ -5,25 +5,26 @@ from sklearn import metrics
 import scipy.stats
 import gzip
 
+root=sys.path[0]
 GlobalEnrichmentFn=sys.argv[1]
 PosRankEnrichmentFn=sys.argv[2]
 
 motifNames_clust=dict()
 TFNameSet=set()
 gene2Protein=dict()
-for line in open("data/gene2Protein.txt"):
+for line in open(root+"/data/gene2Protein.txt"):
         comps=line.strip().split()
         gene2Protein[comps[0].upper()]=comps[1].upper()
 
 		
 motifsWinstance=set()
-for line in open("data/uniqueMotif.txt"):
+for line in open(root+"/data/uniqueMotif.txt"):
         motifsWinstance.add(line.strip().upper())
 
 cid=-1
 cid_name=dict()
 multigroup_TF=set()
-for line in open("data/motifs-clust-names.txt"):
+for line in open(root+"/data/motifs-clust-names.txt"):
         cid+=1
         comps=line.strip().replace(";","\t").split()
         motifset=set(comps)
@@ -50,7 +51,7 @@ for line in open("data/motifs-clust-names.txt"):
 		
 TotalMotifCandidates=set()
 
-for line in open("data/uniqueMotif.txt"):
+for line in open(root+"/data/uniqueMotif.txt"):
         m=line.strip().upper()
         tfname=m.split("_")[0]
         if len(tfname)<2:
@@ -79,6 +80,8 @@ def getRankandLabel(fn):
                 if motifname not in motifNames_clust:
                         continue
                 motifname_cid=motifNames_clust[motifname]
+		if isinstance(motifname_cid,set):
+			motifname_cid=list(motifname_cid)[0]
                 if len(cid_name[motifname_cid])<2: ##filter motif with name only one character
                         continue
 		mncid=motifname.split("_")[0]+"_"+str(motifname_cid)
@@ -139,6 +142,8 @@ for line in gzip.open(GlobalEnrichmentFn):
                 if m not in motifNames_clust:
                         continue
                 cid=motifNames_clust[m]
+		if isinstance(cid,set):
+			cid=list(cid)[0]
                 score=float(comps[13])
                 if d not in dataset_motifscore:
                         dataset_motifscore[d]=dict()

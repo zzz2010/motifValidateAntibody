@@ -14,7 +14,7 @@ fn=overlapfile+".pickle"
 if True: #not os.path.isfile(fn):
 	for line in open(overlapfile):
 		comps=line.strip().split()
-		motifName=comps[0].replace("_8mer","")
+		motifName=comps[0].replace("_8mer","").upper()
 		motif_pos=(int(comps[2])+int(comps[3]))/2
 		peakcenter=(int(comps[8])+int(comps[9]))/2
 		distance=int(abs(motif_pos-peakcenter))
